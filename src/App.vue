@@ -9,21 +9,27 @@ import { RouterLink, RouterView } from 'vue-router'
   <RouterView />
 </template>
 
-<style >
+<style>
+
+:root {
+  --color-grey: #BEBEBE;
+  --color-main: #54BCBD;
+  --color-main-bg: #54BCBD67;
+  
+}
+
+
 * {
+  margin: 0;
+  padding: 0;
+  outline: none;
+  text-decoration: none;
   box-sizing: border-box;
   background: transparent;
 }
 
 body {
-
-  margin: 0;
-  padding: 0;
-  outline: none;
-  text-decoration: none;
-  overflow: auto;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-
 }
 
 
@@ -45,9 +51,12 @@ body {
 }
 
 @keyframes moveBackground {
-  0%, 100% {
-    background-position-x: 0 ;
+
+  0%,
+  100% {
+    background-position-x: 0;
   }
+
   50% {
     background-position-x: 20px;
   }

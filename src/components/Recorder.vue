@@ -22,7 +22,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onUnmounted } from 'vue';
+import { ref, onUnmounted, watch } from 'vue';
+import Recorder from 'recorder-core';
+import 'recorder-core/src/engine/mp3-engine.js';
+import 'recorder-core/src/engine/mp3';
 
 import IconRecorder0 from './icons/IconRecorder0.vue';
 import IconRecorder1 from './icons/IconRecorder1.vue';
@@ -46,36 +49,39 @@ const recording = ref(0);
 const hintText = ref('轻触开始录音');
 const audioElement = ref<HTMLAudioElement | null>(null);
 
-let mediaRecorder: MediaRecorder | null = null;
-let audioChunks: Blob[] = [];
-let audioContext: AudioContext | null = null;
-let analyser: AnalyserNode | null = null;
-let source: MediaStreamAudioSourceNode | null = null;
-let stream: MediaStream | null = null;
-let intervalId: number | null = null;
-let volume = ref(0);
+let recorder: Recorder | null = null;
 
-const startRecording = async () => {
+const startRecording = () => {
   hintText.value = '正在打开麦克风';
   recording.value = 1;
 
-  try {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    source = audioContext.createMediaStreamSource(stream);
-    analyser = audioContext.createAnalyser();
-    source.connect(analyser);
+  recorder = new Recorder({
+    type: 'mp3',
+    sampleRate: 44100,
+    bitRate: 16,
+    onProcess: (buffers, powerLevel, bufferDuration, bufferSampleRate, newBufferIdx, asyncEnd) => {
+      recording.value = 2;
+      hintText.value = `正在录音，音量为 ${powerLevel}`;
+    }
+  });
 
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.push(event.data);
-      }
-    };
+  recorder.open(() => {
+    console.log('录音已打开');
+    recorder.start();
+  }, (msg, isUserNotAllow) => {
+    recording.value = 0;
+    alert('抱歉，无法启动录音。\n' + msg);
+    console.log((isUserNotAllow ? "UserNotAllow，" : "") + "无法录音:" + msg);
+    hintText.value = '无法录音';
+  });
+};
 
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunks, { type: 'audio/wav' });
-      audioChunks = [];
+const stopRecording = () => {
+  if (recorder && recording.value === 2) {
+    recorder.stop((blob, duration) => {
+      recorder.close();
+      recorder = null;
+      console.log("录音成功", blob, "时长:" + duration + "ms");
 
       hintText.value = null;
       recording.value = 3;
@@ -91,47 +97,7 @@ const startRecording = async () => {
         recording.value = 4;
         hintText.value = '轻触再次录音';
       };
-    };
-
-    mediaRecorder.start();
-    recording.value = 2;
-    hintText.value = '正在录音';
-
-    const dataArray = new Uint8Array(analyser.fftSize);
-    intervalId = setInterval(() => {
-      analyser.getByteTimeDomainData(dataArray);
-      let sum = 0.0;
-      for (let i = 0; i < dataArray.length; ++i) {
-        sum += (dataArray[i] - 128) ** 2;
-      }
-      volume.value = Math.sqrt(sum / dataArray.length);
-      hintText.value = `正在录音，音量为 ${volume.value.toFixed(2)}`;
-    }, 100);
-  } catch (error) {
-    recording.value = 0;
-    alert('抱歉，无法启动录音。\n' + error);
-    console.log('无法录音:', error);
-    hintText.value = '无法录音';
-  }
-};
-
-const stopRecording = () => {
-  if (mediaRecorder && recording.value === 2) {
-    mediaRecorder.stop();
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-    }
-    if (audioContext) {
-      source?.disconnect();
-      analyser?.disconnect();
-      audioContext.close().then(() => {
-        audioContext = null;
-      });
-    }
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
-    }
+    });
   }
 };
 

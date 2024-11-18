@@ -19,7 +19,7 @@ const toTopic = (text) => {
   router.push({
     name: 'detail',
     query: {
-      'text': text,
+      'topic': text,
     },
   })
 }

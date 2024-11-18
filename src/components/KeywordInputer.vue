@@ -9,25 +9,30 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 
+interface typeProps {
+  go: (topicName: string) => void
+}
+
+const props = defineProps<typeProps>()
 const inputTopicName = ref('');
 const isInvalid = ref(false);
 
-const emit = defineEmits<{
-  (e: 'go', keyword: string): void
-}>();
-
 const validateAndEmit = () => {
+  if (isInvalid.value) {
+    return
+  }
   if (inputTopicName.value.length < 3 || inputTopicName.value.length > 50) {
     isInvalid.value = true;
     const savedKyword = inputTopicName.value
-    inputTopicName.value = inputTopicName.value.length < 3 ? "至少要 3 个字喔":"最多50个字喔";
+    inputTopicName.value = inputTopicName.value.length < 3 ? "至少要 3 个字喔" : "最多50个字喔";
     // 进行错误提示，500ms 后恢复
     setTimeout(() => {
       isInvalid.value = false;
       inputTopicName.value = savedKyword;
     }, 500);
   } else {
-    emit('go', inputTopicName.value);
+    console.log("go", inputTopicName.value)
+    props.go(inputTopicName.value)
   }
 };
 </script>
@@ -43,7 +48,7 @@ const validateAndEmit = () => {
 .keyword-inputer-input {
   display: flex;
   align-items: center;
-  border: 2px solid #54BCBD;
+  border: 2px solid var(--color-main);
   border-right: none;
   background-color: rgba(251, 255, 255, 0.87);
   padding: 0.75rem;
@@ -54,15 +59,15 @@ const validateAndEmit = () => {
 }
 
 .keyword-inputer-input::placeholder {
-  color: #bebebe;
+  color: var(--color-grey);
   opacity: 1;
 }
 
 .keyword-inputer-button {
-  border: 2px solid #54BCBD;
+  border: 2px solid var(--color-main);
   border-left: none;
   padding: 0.75rem;
-  background-color: #54bbbd67;
+  background-color: var(--color-main-bg);
   color: #FFFFFF;
   font-weight: bold;
   border-radius: 0px 15px 15px 0px;
@@ -80,8 +85,10 @@ const validateAndEmit = () => {
     color: inherit;
   }
 
-  50% {
-    color: red;
+  1%,
+  99% {
+    color: var(--color-main);
+    /* font-size: 0.9rem; */
   }
 }
 </style>

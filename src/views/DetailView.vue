@@ -18,7 +18,7 @@ const step = ref(0)
 const current = ref([])
 const currentIndex = ref(0)
 
-const title = ref(route.query.text)
+const title = ref(route.query.topic)
 const loadingText = ref('')
 
 // 创建响应式数据
@@ -169,8 +169,8 @@ const toStepZero = () => {
 }
 
 onMounted(() => {
-  if (route.query.text) {
-    createTopic(route.query.text)
+  if (route.query.topic) {
+    createTopic(route.query.topic)
   } else {
     router.push("/#/")
   }

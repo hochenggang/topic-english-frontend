@@ -5,44 +5,44 @@ import KeywordInputer from '../components/KeywordInputer.vue'
 
 const router = useRouter()
 
-const keyword = ref('')
-
 class History {
-  constructor(key:string) {
+  
+  constructor(key: string) {
     this.key = key
     this.initHistoryStorage()
   }
 
-  initHistoryStorage(){
+  initHistoryStorage() {
     if (!localStorage.getItem(this.key)) {
       localStorage.setItem(this.key, JSON.stringify([]))
     }
   }
 
-  getAllHistoryRecord(){
+  getAllHistoryRecord() {
     return JSON.parse(localStorage.getItem(this.key)) as string[]
   }
 
-  insertHistoryRecord(value:string){
+  insertHistoryRecord(value: string) {
     const inputs = this.getAllHistoryRecord()
     if (!inputs.includes(value)) {
       inputs.unshift(value)
     }
     localStorage.setItem(this.key, JSON.stringify(inputs))
-    console.log("add history", keyword.value)
+    console.log("add history", value.value)
   }
 }
 
 const history = new History("inputs")
 
-const go = () => {
-  if (keyword.value.length >= 2) {
-    console.log('go', keyword.value)
-    history.insertHistoryRecord(keyword.value)
+
+const go = (topicName:string) => {
+  if (topicName.length >= 2) {
+    console.log('go', topicName)
+    history.insertHistoryRecord(topicName)
     router.push({
       name: 'detail',
       query: {
-        'text': keyword.value,
+        'topic': topicName,
       },
     })
   }
@@ -53,7 +53,7 @@ const go = () => {
 <template>
   <div class="main">
     <div class="main full z2">
-      <KeywordInputer v-model="keyword" @go="go" />
+      <KeywordInputer :go="go" />
     </div>
     <div class="footer">
       <span class="small-link" @click="router.push('/star-sentence')">星标句子</span>
@@ -98,14 +98,10 @@ const go = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-
-
 }
 
 
 .small-link {
-
-
   cursor: pointer;
   color: #54BCBD;
   border-bottom: 1px dashed #999;
