@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory,createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import DetailView from '../views/DetailView.vue'
-import History from '../views/History.vue'
-import StarSentence from '../views/StarSentence.vue'
+import Sentences from '@/views/Sentences.vue'
+
 const router = createRouter({
   // history: createWebHistory(import.meta.env.BASE_URL),  
   history: createWebHashHistory(),
@@ -13,20 +12,20 @@ const router = createRouter({
       component: HomeView
     },
     {
-      path: '/detail',
-      name: 'detail',
-      component: DetailView
+      path: '/sentences',
+      name: 'sentences',
+      component: Sentences
     },
-    {
-      path: '/history',
-      name: 'history',
-      component: History
-    },
-    {
-      path: '/star-sentence',
-      name: 'star-sentence',
-      component: StarSentence
-    },
+    // {
+    //   path: '/history',
+    //   name: 'history',
+    //   component: History
+    // },
+    // {
+    //   path: '/star-sentence',
+    //   name: 'star-sentence',
+    //   component: StarSentence
+    // },
     
   ]
 })
