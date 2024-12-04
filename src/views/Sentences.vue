@@ -1,5 +1,5 @@
 <template>
-  <FullCenter style="padding: 1rem;" v-if="currentSentenceIndex == -1">
+  <FullCenter style="padding: 1rem;" v-if="currentSentenceIndex < 0">
     <h3>{{ currentTag }}</h3>
     <iconStart class="margin-10" :fillColor="colorBlueMain" @click="startPlay" title="开始" />
     <span class="note-text">点击开始后，<br>你可以播放句子的发音，<br>然后录制你的跟读并回放。</span>
@@ -7,9 +7,9 @@
 
   <div class="main" v-if="currentSentenceIndex >= 0">
     <div style="position: fixed;top: 0;width: 100%;height: 2px;z-index: 1;"
-      :style="`background-color:${colorGreenBg};`">
+      :style="`background-color:var(--bg-green);`">
       <div style="position: fixed;top: 0;height: 2px;z-index: 2;"
-        :style="`background-color:${colorGreenMain};width: ${currentSentenceIndex / sentences.length}%;`">
+        :style="`background-color:var(--color-green);width: ${currentSentenceIndex / sentences.length}%;`">
       </div>
     </div>
     <section>
@@ -20,20 +20,23 @@
     <footer
       :class="{ 'bg-red': (currentStatus == 2), 'bg-blue': (currentStatus <= 1), 'bg-green': (currentStatus >= 3) }">
 
-      <div v-show="currentStatus == 0" class="icon" title="轻触以开始播放" @click="doStage2()">
-        <IconSpeaker :size="50" :fillColor="colorBlueMain" />
+      <div v-show="currentStatus == 0" class="icon" title="正在加载语音">
+        <IconSpeaker3 :size="50" />
       </div>
-      <div v-show="currentStatus == 1" class="icon breathing-effect" title="正在播放">
-        <IconSpeaker :size="50" :fillColor="colorBlueMain" />
+      <div v-show="currentStatus == 1" class="icon breathing-effect" title="正在播放语音">
+        <IconSpeaker3 :size="50" />
       </div>
-      <div v-show="currentStatus == 2" class="icon" title="正在录音">
-        <IconRecorder :wave="currentVolume" :size="50" />
+      <div v-show="currentStatus == 2" class="icon" title="点击开始录音" @click="doStage3()">
+        <iconRecorder3 :wave="1" :size="50" />
       </div>
-      <div v-show="currentStatus == 3" class="icon" title="轻触以开始回放" @click="doStage4()">
-        <IconSpeaker :size="50" :fillColor="colorGreenMain" />
+      <div v-show="currentStatus == 3" class="icon" title="正在录音">
+        <iconRecorder3 :wave="currentVolume" :size="50" />
       </div>
-      <div v-show="currentStatus == 4" @click="" class="icon breathing-effect" title="正在回放">
-        <IconSpeaker :size="50" :fillColor="colorGreenMain" />
+      <div v-show="currentStatus == 4" class="icon" title="轻触以开始回放" @click="doStage4()">
+        <IconPlay3 :size="50" />
+      </div>
+      <div v-show="currentStatus == 5" @click="" class="icon breathing-effect" title="正在回放">
+        <IconSpeaker3 :size="50" :styleIndex="2" />
       </div>
 
     </footer>
@@ -48,6 +51,10 @@ import FullCenter from '@/components/FullCenter.vue';
 import IconSpeaker from '@/components/icons/IconSpeaker.vue';
 import IconRecorder from '@/components/icons/IconRecorder.vue';
 import iconStart from '@/components/icons/iconStart.vue';
+import iconPlay3 from '@/components/icons/iconPlay3.vue';
+import IconSpeaker3 from '@/components/icons/IconSpeaker3.vue';
+import iconRecorder3 from '@/components/icons/iconRecorder3.vue';
+import IconPlay3 from '@/components/icons/iconPlay3.vue';
 
 const colorBlueMain = '#9accff';
 const colorGreenMain = '#55ffb3';
@@ -63,11 +70,12 @@ type typeSentence = [number, string, string]
 const sentences = ref<typeSentence[]>()
 const currentSentenceIndex = ref<number>(-1)
 const currentStatus = ref(0)
-// currentStatus 0 预加载 TTS  doStage1
-// currentStatus 1 播放TTS doStage2
-// currentStatus 2 开始录音 doStage3
-// currentStatus 3 录音结束 
-// currentStatus 4 开始回放 doStage4
+// currentStatus 0 正在预加载 TTS
+// currentStatus 1 正在播放TTS
+// currentStatus 2 TTS播放完毕
+// currentStatus 3 正在录音
+// currentStatus 4 录音结束 
+// currentStatus 5 正在回放
 
 const currentVolume = ref(0)
 const currentSentenceZh = ref("")
@@ -149,41 +157,52 @@ const doStage1 = async () => {
   // 预加载TTS
   currentStatus.value = 0
   await initCurrentAudio(currentTtsUrl.value)
-
+  // 播放TTS
+  currentStatus.value = 1
+  await playCurrentAudio()
+  // 播放提示音，表面录音要开始了
+  await initCurrentAudio(`${host.value}/static/di.mp3`)
+  await playCurrentAudio()
+  // TTS播放完毕
+  currentStatus.value = 2
+  // 尝试开始录音
+  try {
+    await doStage3()
+  } catch (error) {
+    console.log("自动录音失败，请手动录音")
+  }
 }
 
 
 const doStage3 = async () => {
   try {
-    // 开始录音
-    currentStatus.value = 2
+    // 正在录音
+    currentStatus.value = 3
     currentRecordBlob.value = await initRecorder((volume: number) => {
+      // console.log('volume:',volume)
       currentVolume.value = volume;
     });
     await initCurrentAudio(currentRecordBlob.value)
     // 录音完毕
-    currentStatus.value = 3
+    currentStatus.value = 4
+    try {
+      await doStage4()
+    } catch (error) {
+      console.log('自动播放失败，请手动点击播放')
+    }
   } catch (error) {
     // 如果没有麦克风
     // 就跳到下一个句子，至少可以让人听句子
     currentSentenceIndex.value += 1
   }
-
-}
-
-const doStage2 = async () => {
-  // 播放TTS
-  currentStatus.value = 1
-  await playCurrentAudio()
-  await doStage3()
 }
 
 
 const doStage4 = async () => {
   // 开始回放
-  currentStatus.value = 4
+  currentStatus.value = 5
   await playCurrentAudio()
-  await initCurrentAudio(`${host.value}/static/didu.mp3`)
+  await initCurrentAudio(`${host.value}/static/hu.mp3`)
   await playCurrentAudio()
   currentSentenceIndex.value += 1
 }
@@ -304,16 +323,30 @@ footer {
   width: 100%;
 }
 
+
+.color-red {
+  background-color: var(--color-red);
+}
+
+.color-blue {
+  background-color: #91c8ff;
+}
+
+.color-green {
+  background-color: #83ffc7;
+}
+
+
 .bg-red {
-  background-color: #ffb9cb;
+  background-color: var(--bg-red);
 }
 
 .bg-blue {
-  background-color: #c3e1ff;
+  background-color: var(--bg-blue);
 }
 
 .bg-green {
-  background-color: #baffe0;
+  background-color: var(--bg-green);
 }
 
 h2 {

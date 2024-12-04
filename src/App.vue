@@ -16,6 +16,13 @@ import { RouterLink, RouterView } from 'vue-router'
   --color-grey: #BEBEBE;
   --color-main: #54BCBD;
   --color-main-bg: #54BCBD67;
+  
+  --color-red: #ff8eaa;
+  --color-blue: #91c8ff;
+  --color-green: #91ffb0;
+  --bg-red: #ffd0db;
+  --bg-blue : #cde6ff;
+  --bg-green: #cfffe9;
 }
 
 
