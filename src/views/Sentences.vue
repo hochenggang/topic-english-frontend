@@ -222,16 +222,17 @@ const getHistory = (key: string) => {
   if (history_text) {
     history = JSON.parse(history_text);
   }
-  return key in history ? history[key] : 0;
+  let [index, total] = key in history ? history[key] : [0, 0];
+  return [index, total]
 };
 
-const setHistory = (key: string, index: number) => {
+const setHistory = (key: string, index: number, total: number) => {
   let history_text = localStorage.getItem("history");
   let history = {};
   if (history_text) {
     history = JSON.parse(history_text);
   }
-  history[key] = index;
+  history[key] = [index, total];
   localStorage.setItem("history", JSON.stringify(history));
 };
 
@@ -243,7 +244,7 @@ const doStage4 = async () => {
   await playCurrentAudio()
   await initCurrentAudio(`${host.value}/static/hu.mp3`)
   await playCurrentAudio()
-  setHistory(currentTag.value, currentSentenceIndex.value)
+  setHistory(currentTag.value, currentSentenceIndex.value, sentences.value.length)
   currentSentenceIndex.value += 1
 }
 
@@ -262,7 +263,8 @@ const initSentence = async (sentence: typeSentence) => {
 }
 
 const startPlay = () => {
-  currentSentenceIndex.value = getHistory(currentTag.value)
+  let [index, total] = getHistory(currentTag.value)
+  currentSentenceIndex.value = index
 }
 
 

@@ -12,6 +12,21 @@ const router = useRouter()
 // 但现在先跑起来再说
 
 
+// 从Sentence组件获取历史记录，并绘制到tag的底部
+const getHistory = (key: string) => {
+  let history_text = localStorage.getItem("history");
+  let history = {};
+  if (history_text) {
+    history = JSON.parse(history_text);
+  }
+  let [index, total] = key in history ? history[key] : [0, 0];
+  return [index, total]
+};
+
+const getTagWidth = (tag: string) => {
+  let [index, total] = getHistory(tag)
+  return `${index / total * 100}%`
+}
 const tags = ref<string[]>()
 
 onMounted(async () => {
@@ -35,6 +50,7 @@ onMounted(async () => {
         },
       })">
         <div class="tag-text">{{ tag }}</div>
+        <div class="tag-bg" :style="`width:${getTagWidth(tag)};`"></div>
       </li>
     </ul>
   </div>
@@ -60,12 +76,24 @@ onMounted(async () => {
   padding: 1rem;
   background-color: #dcdcdc65;
   cursor: pointer;
+  position: relative;
 }
 
 .tag-text {
   font-size: 1rem;
   font-weight: normal;
   color: #2b2b2b;
+}
+
+
+.tag-bg {
+  position: absolute;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background-color: var(--bg-green);
+  width: 0;
+  z-index: -1;
 }
 
 h1 {
