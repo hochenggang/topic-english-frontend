@@ -34,9 +34,7 @@ onMounted(async () => {
           'tag': tag,
         },
       })">
-        <div class="tag-text">
-          <h2>{{ tag }}</h2>
-        </div>
+        <div class="tag-text">{{ tag }}</div>
       </li>
     </ul>
   </div>
@@ -65,8 +63,8 @@ onMounted(async () => {
 }
 
 .tag-text {
-  font-size: 1.2rem;
-  font-weight: lighter;
+  font-size: 1rem;
+  font-weight: normal;
   color: #2b2b2b;
 }
 

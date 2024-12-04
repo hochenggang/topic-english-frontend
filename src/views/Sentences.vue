@@ -1,17 +1,27 @@
 <template>
-  <FullCenter style="padding: 1rem;" v-if="currentSentenceIndex < 0">
+
+  <FullCenter style="padding: 1rem;" v-if="currentSentenceIndex < 0 && sentences && sentences.length > 0">
     <h3>{{ currentTag }}</h3>
-    <iconStart class="margin-10" :fillColor="colorBlueMain" @click="startPlay" title="开始" />
+    <iconStart class="margin-10" :fillColor="'var(--color-blue)'" @click="startPlay" title="开始" />
     <span class="note-text">点击开始后，<br>你可以播放句子的发音，<br>然后录制你的跟读并回放。</span>
   </FullCenter>
+  <FullCenter style="padding: 1rem;" v-if="currentSentenceIndex < 0 && !sentences">
+    <p>Loading...</p>
+  </FullCenter>
+
 
   <div class="main" v-if="currentSentenceIndex >= 0">
-    <div style="position: fixed;top: 0;width: 100%;height: 2px;z-index: 1;"
+    <div style="position: fixed;top: 0;width: 100%;height: 3px;z-index: 1;"
       :style="`background-color:var(--bg-green);`">
-      <div style="position: fixed;top: 0;height: 2px;z-index: 2;"
-        :style="`background-color:var(--color-green);width: ${currentSentenceIndex / sentences.length}%;`">
+      <div style="position: fixed;top: 0;height: 3px;z-index: 2;"
+        :style="`background-color:var(--color-green);width: ${currentSentenceIndex / sentences.length * 100}%;`">
       </div>
     </div>
+    <div
+      style="position: fixed;top: 20px;height: 1rem;z-index: 2; width: 100%;text-align: center;font-weight: lighter;font-size: 0.9rem;">
+      {{ currentSentenceIndex + 1 }} / {{ sentences.length }}
+    </div>
+
     <section>
       <h2>{{ currentSentenceEnList.join(" ") }}</h2>
       <h3>{{ currentSentenceZh }}</h3>
@@ -20,18 +30,20 @@
     <footer
       :class="{ 'bg-red': (currentStatus == 2), 'bg-blue': (currentStatus <= 1), 'bg-green': (currentStatus >= 3) }">
 
-      <div v-show="currentStatus == 0" class="icon" title="正在加载语音">
+      <div v-show="currentStatus == 0" class="icon" title="轻触以播放语音" @click="doStage1()">
         <IconSpeaker3 :size="50" />
       </div>
       <div v-show="currentStatus == 1" class="icon breathing-effect" title="正在播放语音">
         <IconSpeaker3 :size="50" />
       </div>
-      <div v-show="currentStatus == 2" class="icon" title="点击开始录音" @click="doStage3()">
+
+      <div v-show="currentStatus == 2" class="icon" title="轻触以开始录音" @click="doStage3()">
         <iconRecorder3 :wave="1" :size="50" />
       </div>
-      <div v-show="currentStatus == 3" class="icon" title="正在录音">
+      <div v-show="currentStatus == 3" class="icon  breathing-effect" title="正在录音">
         <iconRecorder3 :wave="currentVolume" :size="50" />
       </div>
+
       <div v-show="currentStatus == 4" class="icon" title="轻触以开始回放" @click="doStage4()">
         <IconPlay3 :size="50" />
       </div>
@@ -48,22 +60,13 @@ import { ref, onUnmounted, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { initRecorder, recorder } from '@/recorder';
 import FullCenter from '@/components/FullCenter.vue';
-import IconSpeaker from '@/components/icons/IconSpeaker.vue';
-import IconRecorder from '@/components/icons/IconRecorder.vue';
 import iconStart from '@/components/icons/iconStart.vue';
-import iconPlay3 from '@/components/icons/iconPlay3.vue';
 import IconSpeaker3 from '@/components/icons/IconSpeaker3.vue';
 import iconRecorder3 from '@/components/icons/iconRecorder3.vue';
 import IconPlay3 from '@/components/icons/iconPlay3.vue';
 
-const colorBlueMain = '#9accff';
-const colorGreenMain = '#55ffb3';
-const colorGreenBg = '#baffe0';
-
-
 const route = useRoute();
 const router = useRouter();
-
 
 const currentTag = ref<string>()
 type typeSentence = [number, string, string]
@@ -87,6 +90,7 @@ const currentRecordBlob = ref<Blob>()
 
 const host = ref("https://english.imhcg.cn");
 // const host = ref("");
+
 
 
 const requestSentences = async (tag: string) => {
@@ -151,20 +155,30 @@ const playCurrentAudio = async () => {
 };
 
 
+// 分步进行，有些浏览器权限管控严格，无触发下甚至无法播放音频，需要留足降级空间
+// 默认自动播放TTS、录音、回放
+// 降级的情况下，自动播放TTS->失败->手动点击播放按钮
 
 
 const doStage1 = async () => {
   // 预加载TTS
   currentStatus.value = 0
   await initCurrentAudio(currentTtsUrl.value)
-  // 播放TTS
-  currentStatus.value = 1
-  await playCurrentAudio()
-  // 播放提示音，表面录音要开始了
-  await initCurrentAudio(`${host.value}/static/di.mp3`)
-  await playCurrentAudio()
-  // TTS播放完毕
-  currentStatus.value = 2
+  try {
+    // 播放TTS
+    currentStatus.value = 1
+    await playCurrentAudio()
+    // 播放提示音，表面录音要开始了
+    await initCurrentAudio(`${host.value}/static/di.mp3`)
+    await playCurrentAudio()
+    // TTS播放完毕
+    currentStatus.value = 2
+
+  } catch (error) {
+    // 回退status，以显示手动触发按钮
+    currentStatus.value = 0
+
+  }
   // 尝试开始录音
   try {
     await doStage3()
@@ -176,26 +190,51 @@ const doStage1 = async () => {
 
 const doStage3 = async () => {
   try {
-    // 正在录音
+    // 切换状态为：正在录音
     currentStatus.value = 3
+    // 初始化录音组件，回调当前音量
     currentRecordBlob.value = await initRecorder((volume: number) => {
-      // console.log('volume:',volume)
       currentVolume.value = volume;
     });
+    // 初始化回放
     await initCurrentAudio(currentRecordBlob.value)
-    // 录音完毕
     currentStatus.value = 4
     try {
+      // 尝试回放
       await doStage4()
     } catch (error) {
-      console.log('自动播放失败，请手动点击播放')
+      currentStatus.value = 4
+      console.log('自动回放失败，请手动点击播放')
+      return
     }
   } catch (error) {
-    // 如果没有麦克风
-    // 就跳到下一个句子，至少可以让人听句子
-    currentSentenceIndex.value += 1
+    console.log('自动录音失败，请手动点击播放')
+    currentStatus.value = 2
+    return
   }
 }
+
+
+
+const getHistory = (key: string) => {
+  let history_text = localStorage.getItem("history");
+  let history = {};
+  if (history_text) {
+    history = JSON.parse(history_text);
+  }
+  return key in history ? history[key] : 0;
+};
+
+const setHistory = (key: string, index: number) => {
+  let history_text = localStorage.getItem("history");
+  let history = {};
+  if (history_text) {
+    history = JSON.parse(history_text);
+  }
+  history[key] = index;
+  localStorage.setItem("history", JSON.stringify(history));
+};
+
 
 
 const doStage4 = async () => {
@@ -204,11 +243,13 @@ const doStage4 = async () => {
   await playCurrentAudio()
   await initCurrentAudio(`${host.value}/static/hu.mp3`)
   await playCurrentAudio()
+  setHistory(currentTag.value, currentSentenceIndex.value)
   currentSentenceIndex.value += 1
 }
 
 
 const initSentence = async (sentence: typeSentence) => {
+
   let [id, en, zh] = sentence
   if (typeof JSON.parse(en) == 'string') {
     currentSentenceEnList.value = [JSON.parse(en)];
@@ -221,37 +262,16 @@ const initSentence = async (sentence: typeSentence) => {
 }
 
 const startPlay = () => {
-  currentSentenceIndex.value = 0
+  currentSentenceIndex.value = getHistory(currentTag.value)
 }
-
-
-
-
-// const getHistory = (id: number) => {
-//   let history_text = localStorage.getItem("history");
-//   let history = {};
-//   if (history_text) {
-//     history = JSON.parse(history_text);
-//   }
-//   return history[String(id)];
-// };
-
-// const setHistory = (id: number, data: string[]) => {
-//   let history_text = localStorage.getItem("history");
-//   let history = {};
-//   if (history_text) {
-//     history = JSON.parse(history_text);
-//   }
-//   history[String(id)] = data;
-//   localStorage.setItem("history", JSON.stringify(history));
-// };
-
 
 
 onMounted(async () => {
   const tag = route.query.tag as string;
   if (tag) {
+    // 获取标签
     currentTag.value = tag
+    // 请求句子列表
     await requestSentences(tag);
     watch(currentSentenceIndex, () => {
       if (currentSentenceIndex.value + 1 == sentences.value.length) {
@@ -280,9 +300,6 @@ onUnmounted(() => {
   currentStatus.value = 0;
   currentVolume.value = 0;
 });
-
-
-
 
 
 </script>
