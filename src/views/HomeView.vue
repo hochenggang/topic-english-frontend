@@ -23,10 +23,26 @@ const getHistory = (key: string) => {
   return [index, total]
 };
 
+const getFinish = (key: string) => {
+  let finished_text = localStorage.getItem("finished");
+  let finished = {};
+  if (finished_text) {
+    finished = JSON.parse(finished_text);
+  }
+  return key in finished ? finished[key] : null;
+};
+
 const getTagWidth = (tag: string) => {
-  let [index, total] = getHistory(tag)
-  return `${index / total * 100}%`
+  if (getFinish(tag)){
+    return '100%'
+  }else{
+    let [index, total] = getHistory(tag)
+    return `${index / total * 100}%`
+  }
 }
+
+
+
 const tags = ref<string[]>()
 
 onMounted(async () => {

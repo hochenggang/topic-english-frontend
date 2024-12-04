@@ -10,11 +10,11 @@
   </FullCenter>
 
 
-  <div class="main" v-if="currentSentenceIndex >= 0">
+  <div class="main" v-if="currentSentenceIndex >= 0 && currentSentenceZh">
     <div style="position: fixed;top: 0;width: 100%;height: 3px;z-index: 1;"
       :style="`background-color:var(--bg-green);`">
       <div style="position: fixed;top: 0;height: 3px;z-index: 2;"
-        :style="`background-color:var(--color-green);width: ${currentSentenceIndex / sentences.length * 100}%;`">
+        :style="`background-color:var(--color-green);width: ${(currentSentenceIndex + 1) / sentences.length * 100}%;`">
       </div>
     </div>
     <div
@@ -237,6 +237,24 @@ const setHistory = (key: string, index: number, total: number) => {
 };
 
 
+const setFinish = (key: string) => {
+  let finished_text = localStorage.getItem("finished");
+  let finished = {};
+  if (finished_text) {
+    finished = JSON.parse(finished_text);
+  }
+  finished[key] = { 'at': new Date().toLocaleString() };
+  localStorage.setItem("finished", JSON.stringify(finished));
+};
+
+const getFinish = (key: string) => {
+  let finished_text = localStorage.getItem("finished");
+  let finished = {};
+  if (finished_text) {
+    finished = JSON.parse(finished_text);
+  }
+  return key in history ? history[key] : null;
+};
 
 const doStage4 = async () => {
   // 开始回放
@@ -250,6 +268,7 @@ const doStage4 = async () => {
 
 
 const initSentence = async (sentence: typeSentence) => {
+  console.log('load:', sentence)
 
   let [id, en, zh] = sentence
   if (typeof JSON.parse(en) == 'string') {
@@ -277,10 +296,13 @@ onMounted(async () => {
     await requestSentences(tag);
     watch(currentSentenceIndex, () => {
       if (currentSentenceIndex.value + 1 == sentences.value.length) {
+        setFinish(currentTag.value)
         currentSentenceIndex.value = -1
       }
-      if (currentSentenceIndex.value >= 0) {
+      if (currentSentenceIndex.value >= 0 && currentSentenceIndex.value <= sentences.value.length - 1) {
         initSentence(sentences.value[currentSentenceIndex.value])
+      } else {
+        currentSentenceIndex.value = 0
       }
     })
   } else {
