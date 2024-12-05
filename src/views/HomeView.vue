@@ -19,7 +19,7 @@ const getHistory = (key: string) => {
   if (history_text) {
     history = JSON.parse(history_text);
   }
-  let [index, total] = key in history ? history[key] : [0, 0];
+  let [index, total] = key in history ? history[key] : [0, 1];
   return [index, total]
 };
 
@@ -33,11 +33,11 @@ const getFinish = (key: string) => {
 };
 
 const getTagWidth = (tag: string) => {
-  if (getFinish(tag)){
+  if (getFinish(tag)) {
     return '100%'
-  }else{
+  } else {
     let [index, total] = getHistory(tag)
-    return `${index / total * 100}%`
+    return `${Math.round(index / total * 100)}%`
   }
 }
 
@@ -56,7 +56,7 @@ onMounted(async () => {
 
 <template>
   <div class="main">
-    <h1>Let's Start.</h1>
+    <h1>Repeat it!</h1>
     <h3 v-if="!tags">Loading...</h3>
     <ul class="tags" v-if="tags">
       <li class="tag" v-for="tag in tags" @click="router.push({

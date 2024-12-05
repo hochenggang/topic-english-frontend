@@ -295,14 +295,13 @@ onMounted(async () => {
     // 请求句子列表
     await requestSentences(tag);
     watch(currentSentenceIndex, () => {
-      if (currentSentenceIndex.value + 1 == sentences.value.length) {
+      if (currentSentenceIndex.value + 1 >= sentences.value.length) {
         setFinish(currentTag.value)
         currentSentenceIndex.value = -1
-      }
-      if (currentSentenceIndex.value >= 0 && currentSentenceIndex.value <= sentences.value.length - 1) {
-        initSentence(sentences.value[currentSentenceIndex.value])
       } else {
-        currentSentenceIndex.value = 0
+        if (currentSentenceIndex.value >= 0) {
+          initSentence(sentences.value[currentSentenceIndex.value])
+        }
       }
     })
   } else {
